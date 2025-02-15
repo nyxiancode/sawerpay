@@ -3,7 +3,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import Database
 
 db = Database()
-saweria = Saweria(user_id="your_saweria_user_id")
+saweria = Saweria(user_id="nyxian")
 
 @Client.on_callback_query(filters.regex("^order_talent_"))
 async def order_talent(client, callback_query):
