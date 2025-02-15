@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import Database
+from config import Config  # Tambahkan baris ini
 
 db = Database()
 
