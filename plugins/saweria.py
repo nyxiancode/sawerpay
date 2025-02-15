@@ -1,6 +1,6 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from saweria import Saweria
+from plugins.saweria import Saweria
 from database import Database
 
 db = Database()
