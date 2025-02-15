@@ -4,38 +4,29 @@
 echo "Menginstal atau mengupgrade dependencies..."
 pip install --upgrade -r requirements.txt
 
-# Memeriksa apakah file sample.env sudah ada
-if [ ! -f sample.env ]; then
-    echo "File sample.env tidak ditemukan. Pastikan file tersebut ada di direktori ini."
-    exit 1
-fi
+# Meminta input untuk mengisi data pada sample.env
+echo "Silakan isi data berikut:"
 
-# Membaca input pengguna untuk mengisi .env
-echo "Mengisi konfigurasi .env..."
-touch .env  # Membuat file .env jika belum ada
+read -p "API_ID: " API_ID
+read -p "API_HASH: " API_HASH
+read -p "BOT_TOKEN: " BOT_TOKEN
+read -p "OWNER_ID: " OWNER_ID
+read -p "SAWERIA_EMAIL: " SAWERIA_EMAIL
+read -p "SAWERIA_PASSWORD: " SAWERIA_PASSWORD
+read -p "MONGO_URI: " MONGO_URI
+read -p "CHANNEL_DB: " CHANNEL_DB
 
-# Loop melalui setiap baris di sample.env
-while IFS= read -r line; do
-    # Skip baris kosong atau komentar
-    if [[ -z "$line" || "$line" == \#* ]]; then
-        echo "$line" >> .env
-        continue
-    fi
+# Menulis data ke file .env
+echo "Membuat file .env..."
+cat <<EOL > .env
+API_ID=$API_ID
+API_HASH=$API_HASH
+BOT_TOKEN=$BOT_TOKEN
+OWNER_ID=$OWNER_ID
+SAWERIA_EMAIL=$SAWERIA_EMAIL
+SAWERIA_PASSWORD=$SAWERIA_PASSWORD
+MONGO_URI=$MONGO_URI
+CHANNEL_DB=$CHANNEL_DB
+EOL
 
-    # Ekstrak key dari baris
-    key=$(echo "$line" | cut -d '=' -f 1)
-    default_value=$(echo "$line" | cut -d '=' -f 2)
-
-    # Meminta input pengguna
-    read -p "Masukkan nilai untuk $key (default: $default_value): " user_value
-
-    # Jika pengguna tidak memasukkan nilai, gunakan nilai default
-    if [ -z "$user_value" ]; then
-        user_value="$default_value"
-    fi
-
-    # Menulis ke file .env
-    echo "$key=$user_value" >> .env
-done < sample.env
-
-echo "Setup selesai. File .env telah dibuat."
+echo "Setup selesai! File .env telah dibuat."
