@@ -1,0 +1,6 @@
+pyrogram
+requests
+qrcode[pil]
+beautifulsoup4
+pymongo
+python-dotenv
