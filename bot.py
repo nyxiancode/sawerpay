@@ -9,4 +9,8 @@ app = Client(
     bot_token=Config.BOT_TOKEN
 )
 
+# Register handlers
+app.add_handler(start_handler)
+# Tambahkan handler lainnya jika diperlukan
+
 app.run()
