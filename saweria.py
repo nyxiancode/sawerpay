@@ -22,10 +22,26 @@ app = Client(
 # /start: Menampilkan logo dan tombol Talent
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message):
-    logo_url = database.get_logo() or "https://files.catbox.moe/0aojdt.jpg"
+    logo_url = database.get_logo() or "https://example.com/default_logo.jpg"
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Talent", callback_data="talent_menu")]])
     caption = "Selamat datang di Bot Pembayaran Saweria!\nSilahkan pilih menu di bawah."
     await message.reply_photo(logo_url, caption=caption, reply_markup=keyboard)
+
+# /help: Menampilkan daftar perintah yang tersedia
+@app.on_message(filters.command("help") & filters.private)
+async def help_command(client, message):
+    help_text = (
+        "**Daftar Perintah yang Tersedia:**\n\n"
+        "/start - Memulai bot dan menampilkan logo serta menu utama\n"
+        "/help - Menampilkan daftar perintah\n"
+        "/setlogo <url gambar> - Mengubah logo bot (hanya owner)\n"
+        "/addtalent <url image> <nama talent> [detail] - Menambahkan talent dengan URL image dan nama (opsional detail, hanya owner)\n"
+        "/deltalent <nama talent> - Menghapus talent (hanya owner)\n"
+        "/gettalent - Menampilkan daftar talent (hanya owner)\n"
+        "/setharga <nama talent> <harga> - Mengatur harga untuk talent (hanya owner)\n"
+        "/addvip <nama talent> <id channel> - Menambahkan channel VIP untuk talent (hanya owner)\n"
+    )
+    await message.reply(help_text)
 
 # /setlogo: Mengubah logo (hanya owner)
 @app.on_message(filters.command("setlogo") & filters.private)
@@ -38,21 +54,18 @@ async def set_logo_command(client, message):
     database.set_logo(logo_url)
     await message.reply("Logo berhasil diubah!")
 
-# /addtalent: Menambahkan talent (reply ke foto; hanya owner)
+# /addtalent: Menambahkan talent dengan format "/addtalent <url image> <nama talent> [detail]" (hanya owner)
 @app.on_message(filters.command("addtalent") & filters.private)
 async def add_talent_command(client, message):
     if message.from_user.id != config.OWNER_ID:
         return
-    if not message.reply_to_message or not message.reply_to_message.photo:
-        return await message.reply("Silahkan reply ke foto talent beserta perintah:\n/addtalent <nama> <detail>")
     if len(message.command) < 3:
-        return await message.reply("Usage: /addtalent <nama> <detail>")
-    name = message.command[1]
-    detail = " ".join(message.command[2:])
-    photo = message.reply_to_message.photo
-    file_id = photo.file_id
-    database.add_talent(name, detail, file_id)
-    await message.reply(f"Talent '{name}' berhasil ditambahkan.")
+        return await message.reply("Usage: /addtalent <url image> <nama talent> [detail]")
+    image_url = message.command[1]
+    talent_name = message.command[2]
+    detail = " ".join(message.command[3:]) if len(message.command) > 3 else ""
+    database.add_talent(talent_name, detail, image_url)
+    await message.reply(f"Talent '{talent_name}' berhasil ditambahkan.")
 
 # /deltalent: Menghapus talent (hanya owner)
 @app.on_message(filters.command("deltalent") & filters.private)
@@ -60,7 +73,7 @@ async def delete_talent_command(client, message):
     if message.from_user.id != config.OWNER_ID:
         return
     if len(message.command) < 2:
-        return await message.reply("Usage: /deltalent <nama>")
+        return await message.reply("Usage: /deltalent <nama talent>")
     name = message.command[1]
     result = database.delete_talent(name)
     if result.deleted_count:
@@ -87,7 +100,7 @@ async def set_price_command(client, message):
     if message.from_user.id != config.OWNER_ID:
         return
     if len(message.command) < 3:
-        return await message.reply("Usage: /setharga <nama_talent> <harga>")
+        return await message.reply("Usage: /setharga <nama talent> <harga>")
     name = message.command[1]
     try:
         price = float(message.command[2])
@@ -102,7 +115,7 @@ async def add_vip_command(client, message):
     if message.from_user.id != config.OWNER_ID:
         return
     if len(message.command) < 3:
-        return await message.reply("Usage: /addvip <nama_talent> <id_channel>")
+        return await message.reply("Usage: /addvip <nama talent> <id channel>")
     name = message.command[1]
     vip_channel = message.command[2]
     database.set_vip(name, vip_channel)
