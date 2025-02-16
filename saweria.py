@@ -19,7 +19,7 @@ app = Client(
 
 # --------------------- COMMANDS --------------------- #
 
-# /start: Menampilkan logo dan tombol Talent
+# /start: Menampilkan logo default dan tombol Talent
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message):
     logo_url = database.get_logo() or "https://files.catbox.moe/0aojdt.jpg"
@@ -40,6 +40,7 @@ async def help_command(client, message):
         "/gettalent - Menampilkan daftar talent (hanya owner)\n"
         "/setharga <nama talent> <harga> - Mengatur harga untuk talent (hanya owner)\n"
         "/addvip <nama talent> <id channel> - Menambahkan channel VIP untuk talent (hanya owner)\n"
+        "/setdeskripsi <nama talent> <deskripsi> - Mengatur deskripsi talent (bisa juga dengan membalas pesan teks) (hanya owner)\n"
     )
     await message.reply(help_text)
 
@@ -121,6 +122,29 @@ async def add_vip_command(client, message):
     database.set_vip(name, vip_channel)
     await message.reply(f"Channel VIP untuk talent '{name}' berhasil ditambahkan: {vip_channel}")
 
+# /setdeskripsi: Mengatur deskripsi talent (hanya owner)
+# Format: /setdeskripsi <nama talent> <deskripsi>
+# Dapat juga dengan membalas pesan teks, sehingga teks balasan akan dipakai sebagai deskripsi.
+@app.on_message(filters.command("setdeskripsi") & filters.private)
+async def set_deskripsi_command(client, message):
+    if message.from_user.id != config.OWNER_ID:
+        return
+    if len(message.command) < 2:
+        return await message.reply("Usage: /setdeskripsi <nama talent> <deskripsi> (bisa juga dengan membalas pesan teks)")
+    name = message.command[1]
+    # Jika pesan merupakan reply dan memiliki teks, gunakan teks tersebut
+    if message.reply_to_message and message.reply_to_message.text:
+        description = message.reply_to_message.text
+    else:
+        description = " ".join(message.command[2:]) if len(message.command) > 2 else ""
+    if not description:
+        return await message.reply("Tidak ada deskripsi yang diberikan.")
+    result = database.update_talent_description(name, description)
+    if result.modified_count:
+        await message.reply(f"Deskripsi untuk talent '{name}' berhasil diubah.")
+    else:
+        await message.reply(f"Gagal mengubah deskripsi. Talent '{name}' mungkin tidak ada.")
+
 # --------------------- CALLBACK QUERIES --------------------- #
 
 # Callback: Tampilkan Menu Talent
@@ -139,7 +163,7 @@ async def talent_menu_callback(client, callback_query):
 # Callback: Kembali ke Start
 @app.on_callback_query(filters.regex("^back_to_start$"))
 async def back_to_start_callback(client, callback_query):
-    logo_url = database.get_logo() or "https://example.com/default_logo.jpg"
+    logo_url = database.get_logo() or "https://files.catbox.moe/0aojdt.jpg"
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Talent", callback_data="talent_menu")]])
     caption = "Selamat datang di Bot Pembayaran Saweria!\nSilahkan pilih menu di bawah."
     try:
@@ -165,7 +189,7 @@ async def talent_detail_callback(client, callback_query):
     ])
     caption = (
         f"Talent: {talent['name'].capitalize()}\n"
-        f"Detail: {talent['detail']}\n"
+        f"Deskripsi: {talent['detail']}\n"
         f"Harga: {talent.get('price', 'Belum diatur')}"
     )
     try:
