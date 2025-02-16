@@ -54,3 +54,9 @@ def record_transaction(user_id: int, talent_name: str, amount: float, status: st
         "invite_link": invite_link
     }
     return db.transactions.insert_one(transaction)
+
+def update_talent_description(name: str, description: str):
+    """
+    Memperbarui deskripsi (field 'detail') dari talent berdasarkan nama.
+    """
+    return db.talents.update_one({"name": name.lower()}, {"$set": {"detail": description}})
