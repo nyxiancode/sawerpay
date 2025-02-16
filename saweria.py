@@ -165,16 +165,18 @@ async def back_to_start_callback(client, callback_query):
     logo_url = database.get_logo() or "https://files.catbox.moe/0aojdt.jpg"
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Talent", callback_data="talent_menu")]])
     caption = "Selamat datang di Bot Pembayaran Saweria!\nSilahkan pilih menu di bawah."
-    try:
-        await callback_query.message.edit_media(
-            media=InputMediaPhoto(media=logo_url, caption=caption),
-            reply_markup=keyboard
-        )
-    except Exception:
-        await callback_query.message.reply_photo(logo_url, caption=caption, reply_markup=keyboard)
+    # Kirim pesan baru
+    await client.send_photo(
+        chat_id=callback_query.message.chat.id,
+        photo=logo_url,
+        caption=caption,
+        reply_markup=keyboard
+    )
+    # Hapus pesan lama
+    await callback_query.message.delete()
     await callback_query.answer()
 
-# Callback: Tampilkan Detail Talent
+# Callback: Tampilkan Detail Talent (kirim pesan baru dan hapus pesan lama)
 @app.on_callback_query(filters.regex("^talent_"))
 async def talent_detail_callback(client, callback_query):
     data = callback_query.data  # Contoh: talent_john
@@ -191,15 +193,15 @@ async def talent_detail_callback(client, callback_query):
         f"Deskripsi: {talent['detail']}\n"
         f"Harga: {talent.get('price', 'Belum diatur')}"
     )
-    try:
-        await client.edit_message_media(
-            chat_id=callback_query.message.chat.id,
-            message_id=callback_query.message.id,
-            media=InputMediaPhoto(media=talent["image_file_id"], caption=caption),
-            reply_markup=keyboard
-        )
-    except Exception as e:
-        await callback_query.message.reply_text(f"Error: {e}")
+    # Kirim pesan baru dengan foto talent dan caption
+    await client.send_photo(
+        chat_id=callback_query.message.chat.id,
+        photo=talent["image_file_id"],
+        caption=caption,
+        reply_markup=keyboard
+    )
+    # Hapus pesan lama
+    await callback_query.message.delete()
     await callback_query.answer()
 
 # Callback: Order Talent (Generate QR Code Pembayaran)
