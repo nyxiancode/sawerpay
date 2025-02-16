@@ -195,7 +195,7 @@ async def talent_detail_callback(client, callback_query):
     try:
         await client.edit_message_media(
             chat_id=callback_query.message.chat.id,
-            message_id=callback_query.message.message_id,
+            message_id=callback_query.message.id,  # Gunakan .id bukan .message_id
             media={"type": "photo", "media": talent["image_file_id"], "caption": caption},
             reply_markup=keyboard
         )
