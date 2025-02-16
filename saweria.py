@@ -22,7 +22,7 @@ app = Client(
 # /start: Menampilkan logo dan tombol Talent
 @app.on_message(filters.command("start") & filters.private)
 async def start(client, message):
-    logo_url = database.get_logo() or "https://example.com/default_logo.jpg"
+    logo_url = database.get_logo() or "https://files.catbox.moe/0aojdt.jpg"
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Talent", callback_data="talent_menu")]])
     caption = "Selamat datang di Bot Pembayaran Saweria!\nSilahkan pilih menu di bawah."
     await message.reply_photo(logo_url, caption=caption, reply_markup=keyboard)
