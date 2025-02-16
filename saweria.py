@@ -2,7 +2,7 @@ import io
 import uuid
 import qrcode
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 import database
 import config
 
@@ -132,7 +132,6 @@ async def set_deskripsi_command(client, message):
     if len(message.command) < 2:
         return await message.reply("Usage: /setdeskripsi <nama talent> <deskripsi> (bisa juga dengan membalas pesan teks)")
     name = message.command[1]
-    # Jika pesan merupakan reply dan memiliki teks, gunakan teks tersebut
     if message.reply_to_message and message.reply_to_message.text:
         description = message.reply_to_message.text
     else:
@@ -168,7 +167,7 @@ async def back_to_start_callback(client, callback_query):
     caption = "Selamat datang di Bot Pembayaran Saweria!\nSilahkan pilih menu di bawah."
     try:
         await callback_query.message.edit_media(
-            media={"type": "photo", "media": logo_url, "caption": caption},
+            media=InputMediaPhoto(media=logo_url, caption=caption),
             reply_markup=keyboard
         )
     except Exception:
@@ -195,8 +194,8 @@ async def talent_detail_callback(client, callback_query):
     try:
         await client.edit_message_media(
             chat_id=callback_query.message.chat.id,
-            message_id=callback_query.message.id,  # Gunakan .id bukan .message_id
-            media={"type": "photo", "media": talent["image_file_id"], "caption": caption},
+            message_id=callback_query.message.id,
+            media=InputMediaPhoto(media=talent["image_file_id"], caption=caption),
             reply_markup=keyboard
         )
     except Exception as e:
@@ -216,12 +215,9 @@ async def order_talent_callback(client, callback_query):
     if price == 0:
         return await callback_query.answer("Harga belum diatur untuk talent ini.", show_alert=True)
     
-    # Buat payment ID unik
     payment_id = str(uuid.uuid4())
-    # Simulasi URL pembayaran (di real case, gunakan automasi/scraping untuk mendapatkan QR Code dari Saweria)
     payment_url = f"https://saweria.com/payment?payid={payment_id}&amount={price}"
     
-    # Generate QR Code menggunakan library qrcode
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(payment_url)
     qr.make(fit=True)
@@ -230,7 +226,6 @@ async def order_talent_callback(client, callback_query):
     img.save(buf, format="PNG")
     buf.seek(0)
     
-    # Simpan data pembayaran pending (simulasi)
     pending_payments[payment_id] = {
         "user_id": callback_query.from_user.id,
         "talent": talent_name,
@@ -259,21 +254,15 @@ async def check_payment_callback(client, callback_query):
     if not payment:
         return await callback_query.answer("Pembayaran tidak ditemukan.", show_alert=True)
     
-    # Simulasi pengecekan pembayaran.
     payment["status"] = "success"
     
-    # Catat transaksi ke database
     database.record_transaction(payment["user_id"], payment["talent"], payment["price"], "success")
-    
-    # Hapus data pembayaran pending
     pending_payments.pop(payment_id, None)
     
-    # Jika talent memiliki channel VIP, simulasikan pembuatan link invite.
     talent = database.get_talent(payment["talent"])
     vip_channel = talent.get("vip_channel") if talent else None
     invite_text = "Link invite belum diset."
     if vip_channel:
-        # Di real case, gunakan method export_chat_invite_link untuk membuat invite link baru.
         invite_link = f"https://t.me/joinchat/dummyinvite_{payment_id}"
         invite_text = f"Berikut link VIP: {invite_link}"
     
@@ -282,7 +271,6 @@ async def check_payment_callback(client, callback_query):
         f"{invite_text}"
     )
     
-    # Opsional: kirim notifikasi ke channel database jika diset
     settings = database.get_settings()
     if settings and settings.get("channel_database"):
         channel = settings.get("channel_database")
