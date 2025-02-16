@@ -1,42 +1,56 @@
 from pymongo import MongoClient
-from config import Config
+import config
 
-client = MongoClient(Config.MONGO_URI)
-db = client.saweria_bot
+client = MongoClient(config.MONGO_URI)
+# Menggunakan database default yang ditentukan dalam URI atau bisa disesuaikan nama databasenya
+db = client.get_default_database()
 
-class Database:
-    @staticmethod
-    def save_talent(name, details, image_url):
-        db.talents.update_one(
-            {"name": name},
-            {"$set": {"details": details, "image_url": image_url}},
-            upsert=True
-        )
+def get_settings():
+    return db.settings.find_one({})
 
-    @staticmethod
-    def get_talent(name):
-        return db.talents.find_one({"name": name})
+def set_settings(data: dict):
+    return db.settings.update_one({}, {"$set": data}, upsert=True)
 
-    @staticmethod
-    def delete_talent(name):
-        db.talents.delete_one({"name": name})
+def get_logo():
+    settings = get_settings()
+    if settings and "logo_url" in settings:
+        return settings["logo_url"]
+    return None
 
-    @staticmethod
-    def get_all_talents():
-        return list(db.talents.find({}))
+def set_logo(url: str):
+    return set_settings({"logo_url": url})
 
-    @staticmethod
-    def save_transaction(user_id, talent_name, payment_id):
-        db.transactions.insert_one({
-            "user_id": user_id,
-            "talent_name": talent_name,
-            "payment_id": payment_id,
-            "status": "pending"
-        })
+def add_talent(name: str, detail: str, image_file_id: str, price: float = 0, vip_channel: str = None):
+    talent = {
+        "name": name.lower(),
+        "detail": detail,
+        "image_file_id": image_file_id,
+        "price": price,
+        "vip_channel": vip_channel
+    }
+    return db.talents.update_one({"name": name.lower()}, {"$set": talent}, upsert=True)
 
-    @staticmethod
-    def update_transaction(payment_id, status):
-        db.transactions.update_one(
-            {"payment_id": payment_id},
-            {"$set": {"status": status}}
-        )
+def delete_talent(name: str):
+    return db.talents.delete_one({"name": name.lower()})
+
+def get_talent(name: str):
+    return db.talents.find_one({"name": name.lower()})
+
+def list_talents():
+    return list(db.talents.find())
+
+def set_price(name: str, price: float):
+    return db.talents.update_one({"name": name.lower()}, {"$set": {"price": price}})
+
+def set_vip(name: str, vip_channel: str):
+    return db.talents.update_one({"name": name.lower()}, {"$set": {"vip_channel": vip_channel}})
+
+def record_transaction(user_id: int, talent_name: str, amount: float, status: str, invite_link: str = None):
+    transaction = {
+        "user_id": user_id,
+        "talent": talent_name.lower(),
+        "amount": amount,
+        "status": status,
+        "invite_link": invite_link
+    }
+    return db.transactions.insert_one(transaction)
