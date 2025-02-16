@@ -220,6 +220,7 @@ async def order_talent_callback(client, callback_query):
     payment_id = str(uuid.uuid4())
     payment_url = f"https://saweria.com/payment?payid={payment_id}&amount={price}"
     
+    # Generate QR Code menggunakan library qrcode
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(payment_url)
     qr.make(fit=True)
@@ -235,14 +236,15 @@ async def order_talent_callback(client, callback_query):
         "status": "pending"
     }
     
+    # Ganti teks tombol menjadi "Cek Status Pembayaran"
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Saya Sudah Bayar", callback_data=f"checkpay_{payment_id}")],
+        [InlineKeyboardButton("Cek Status Pembayaran", callback_data=f"checkpay_{payment_id}")],
         [InlineKeyboardButton("Batal", callback_data="talent_menu")]
     ])
     caption = (
         f"Silahkan lakukan pembayaran untuk talent '{talent_name}'.\n"
         f"Harga: {price}\n\n"
-        "Scan QR Code berikut dan setelah selesai klik tombol 'Saya Sudah Bayar'."
+        "Scan QR Code berikut dan setelah selesai, klik tombol 'Cek Status Pembayaran'."
     )
     await callback_query.message.reply_photo(photo=buf, caption=caption, reply_markup=keyboard)
     await callback_query.answer()
@@ -256,33 +258,34 @@ async def check_payment_callback(client, callback_query):
     if not payment:
         return await callback_query.answer("Pembayaran tidak ditemukan.", show_alert=True)
     
+    # Simulasikan pengecekan pembayaran (di sini langsung dianggap sukses)
     payment["status"] = "success"
     
-    database.record_transaction(payment["user_id"], payment["talent"], payment["price"], "success")
-    pending_payments.pop(payment_id, None)
-    
-    talent = database.get_talent(payment["talent"])
-    vip_channel = talent.get("vip_channel") if talent else None
-    invite_text = "Link invite belum diset."
-    if vip_channel:
-        invite_link = f"https://t.me/joinchat/dummyinvite_{payment_id}"
-        invite_text = f"Berikut link VIP: {invite_link}"
-    
-    thank_you_text = (
-        f"Terima kasih, pembayaran Anda untuk talent '{payment['talent']}' sebesar {payment['price']} berhasil.\n\n"
-        f"{invite_text}"
-    )
-    
-    settings = database.get_settings()
-    if settings and settings.get("channel_database"):
-        channel = settings.get("channel_database")
-        try:
-            await client.send_message(channel, thank_you_text)
-        except Exception as e:
-            print("Error mengirim ke channel:", e)
-    
-    await callback_query.message.edit_caption(caption=thank_you_text, reply_markup=None)
-    await callback_query.answer("Pembayaran sukses!")
+    if payment["status"] == "success":
+        # Catat transaksi ke database
+        database.record_transaction(payment["user_id"], payment["talent"], payment["price"], "success")
+        pending_payments.pop(payment_id, None)
+        
+        # Jika talent memiliki channel VIP, buat link invite (simulasi)
+        talent = database.get_talent(payment["talent"])
+        vip_channel = talent.get("vip_channel") if talent else None
+        if vip_channel:
+            invite_link = f"https://t.me/joinchat/dummyinvite_{payment_id}"
+            invite_text = f"Berikut link VIP: {invite_link}"
+        else:
+            invite_text = "Link invite belum diset."
+        
+        thank_you_text = (
+            f"Terima kasih, pembayaran Anda untuk talent '{payment['talent']}' sebesar {payment['price']} berhasil.\n\n"
+            f"{invite_text}"
+        )
+        # Kirim pesan baru dengan link invite
+        await client.send_message(callback_query.message.chat.id, thank_you_text)
+        # Hapus pesan QR code
+        await callback_query.message.delete()
+        await callback_query.answer("Pembayaran sukses!")
+    else:
+        await callback_query.answer("Pembayaran masih pending, silakan cek kembali nanti.", show_alert=True)
 
 # --------------------- RUN BOT --------------------- #
 
